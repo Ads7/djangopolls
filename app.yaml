@@ -1,0 +1,9 @@
+application: hello-django-app-engine
+version: 2
+runtime: python27
+api_version: 1
+threadsafe: true
+
+handlers:
+- url: .*
+  script: mysite.wsgi.application

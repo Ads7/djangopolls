@@ -16,6 +16,7 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
 class Question(models.Model):
     question_text = models.CharField(max_length=200)
     pub_date = models.DateTimeField('date published')
+    image = models.CharField(max_length=200,blank=True)
     def __unicode__(self):
     	return self.question_text
 

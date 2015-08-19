@@ -1,14 +1,28 @@
 from django.shortcuts import get_object_or_404, render
+from rest_framework.parsers import FileUploadParser
+from rest_framework.response import Response
 from django.http import HttpResponseRedirect, HttpResponse
-from .models import Choice ,Question
+from rest_framework.views import APIView
+from rest_framework import status
+from rest_framework import views
+from .models import Choice, Question
 from .serializer import ChoiceSerializer,QuestionSerializer
 from django.core.urlresolvers import reverse
 from django.views import generic
 from rest_framework import generics
 from django.utils import timezone
+import cloudstorage as gcs
+from google.appengine.api import blobstore
+from google.appengine.api import images
 
+from google.appengine.api import app_identity
 
-
+# Retry can help overcome transient urlfetch or GCS issues, such as timeouts.
+my_default_retry_params = gcs.RetryParams(initial_delay=0.2,
+                                          max_delay=5.0,
+                                          backoff_factor=2,
+                                          max_retry_period=15)
+gcs.set_default_retry_params(my_default_retry_params)
 
 class IndexView(generic.ListView):
     """docstring for IndexView"""
@@ -25,9 +39,6 @@ class DetailView(generic.DetailView):
     model = Question
     template_name = 'polls/detail.html'
     def get_queryset(self):
-        """
-        Excludes any questions that aren't published yet.
-        """
         return Question.objects.filter(pub_date__lte=timezone.now())
 
 class ResultsView(generic.DetailView):
@@ -47,22 +58,15 @@ def vote(request, question_id):
     else:
         selected_choice.votes += 1
         selected_choice.save()
-        # Always return an HttpResponseRedirect after successfully dealing
-        # with POST data. This prevents data from being posted twice if a
-        # user hits the Back button.
         return HttpResponseRedirect(reverse('polls:results', args=(p.id,)))
 
 def results(request, question_id):
     question = get_object_or_404(Question, pk=question_id)
     return render(request, 'polls/results.html', {'question': question})
 
-
 class QuestionsList(generics.ListCreateAPIView):
     queryset = Question.objects.all()
     serializer_class = QuestionSerializer
-    # token = Token.objects.create(user=request.user)
-    # print token.key
-
 
 class ChoiceList(generics.ListCreateAPIView):
     serializer_class = ChoiceSerializer
@@ -70,9 +74,28 @@ class ChoiceList(generics.ListCreateAPIView):
         question_id = self.kwargs['question_id']
         return Choice.objects.filter(question=question_id)
 
-# class ChoiceList(APIView):
-#     def get(self, request, pk, format=None):
-#         queryset = Choice.objects.all()
-#         # queryset = queryset.filter(question=pk)
-#         serializer = ChoiceSerializer(queryset)
-#         return Response(serializer.data)      
+
+class FileUploadView(views.APIView):
+    parser_classes = (FileUploadParser,)
+    # def put(self, request, filename, format=None):
+    #     file_obj = request.FILES['file']
+    #     # ...
+    #     # do some staff with uploaded file
+    #     # ...
+    #     return Response(file_obj)
+    def post(self, request, question_id,format=None):
+        if(Question.objects.filter(id=question_id).exists()):
+            q=Question.objects.get(id=question_id)
+            data =   request.data['file']
+            filename = "/bucket/" + question_id
+            filename = filename.replace(" ", "_")
+            gcs_file = gcs.open(filename, 'w', content_type = 'image/jpeg')
+            gcs_file.write(data.read())
+            gcs_file.close()
+            blobstore_filename = '/gs' + filename
+            blob_key = blobstore.create_gs_key(blobstore_filename)
+            q.image=images.get_serving_url(blob_key)
+            q.save()
+            return Response(images.get_serving_url(blob_key))
+        return Response("Error")
+

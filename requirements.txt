@@ -1,0 +1,8 @@
+Django==1.8.3
+djangoappengine==1.7.1
+djangorestframework==3.2.2
+djangotoolbox==1.8.0
+MySQL-python==1.2.5
+python-memcached==1.57
+six==1.9.0
+wheel==0.24.0
