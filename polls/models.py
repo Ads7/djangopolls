@@ -6,6 +6,8 @@ from rest_framework.authtoken.models import Token
 from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from google.appengine.ext import ndb
+
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
@@ -13,10 +15,10 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
         Token.objects.create(user=instance)
 
 # Create your models here.
-class Question(models.Model):
-    question_text = models.CharField(max_length=200)
-    pub_date = models.DateTimeField('date published')
-    image = models.CharField(max_length=200,blank=True)
+class Question(ndb.Model):
+    question_text =  ndb.TextProperty(max_length=200)
+    pub_date = ndb.DateTimeProperty(name='date published')
+    image = ndb.StringProperty()
     def __unicode__(self):
     	return self.question_text
 
@@ -28,10 +30,10 @@ class Question(models.Model):
     was_published_recently.short_description = 'Published recently?'
     
 
-class Choice(models.Model):
-    question = models.ForeignKey(Question)
-    choice_text = models.CharField(max_length=200)
-    votes = models.IntegerField(default=0)
+class Choice(ndb.Model):
+    question = ndb.KeyProperty(kind=Question)
+    choice_text = ndb.StringProperty(max_length=200)
+    votes = ndb.IntegerProperty(default=0)
 
     def __unicode__(self):
     	return self.choice_text 

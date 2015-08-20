@@ -14,6 +14,8 @@ from django.utils import timezone
 import cloudstorage as gcs
 from google.appengine.api import blobstore
 from google.appengine.api import images
+from google.appengine.ext import ndb
+
 
 from google.appengine.api import app_identity
 
@@ -65,14 +67,14 @@ def results(request, question_id):
     return render(request, 'polls/results.html', {'question': question})
 
 class QuestionsList(generics.ListCreateAPIView):
-    queryset = Question.objects.all()
+    queryset = Question.query()
     serializer_class = QuestionSerializer
 
 class ChoiceList(generics.ListCreateAPIView):
     serializer_class = ChoiceSerializer
     def get_queryset(self):
         question_id = self.kwargs['question_id']
-        return Choice.objects.filter(question=question_id)
+        return Choice.query(Choice.question == question_id)
 
 
 class FileUploadView(views.APIView):
@@ -84,8 +86,8 @@ class FileUploadView(views.APIView):
     #     # ...
     #     return Response(file_obj)
     def post(self, request, question_id,format=None):
-        if(Question.objects.filter(id=question_id).exists()):
-            q=Question.objects.get(id=question_id)
+        if(Question.query(id=question_id).exists()):
+            q=Question.query(id==question_id)
             data =   request.data['file']
             filename = "/bucket/" + question_id
             filename = filename.replace(" ", "_")
