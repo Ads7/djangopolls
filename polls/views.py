@@ -17,10 +17,12 @@ import cloudstorage as gcs
 from google.appengine.api import blobstore
 from google.appengine.api import images
 from google.appengine.ext import ndb
+from google.appengine.api import app_identity
+from google.appengine.api import search
+
+index = search.Index(name='question')
 
 logger = logging.getLogger(__name__)
-from google.appengine.api import app_identity
-
 # Retry can help overcome transient urlfetch or GCS issues, such as timeouts.
 my_default_retry_params = gcs.RetryParams(initial_delay=0.2,
                                           max_delay=5.0,
@@ -28,64 +30,12 @@ my_default_retry_params = gcs.RetryParams(initial_delay=0.2,
                                           max_retry_period=15)
 gcs.set_default_retry_params(my_default_retry_params)
 
-# class IndexView(generic.ListView):
-#     """docstring for IndexView"""
-#     template_name = 'polls/index.html'
-#     context_object_name = 'latest_question_list'
-#
-#     def get_queryset(self):
-#         """ return the last five published questions."""
-#         return Question.query.(
-#             Question.pub_date<=timezone.now()
-#             ).order_by('-pub_date')[:5]
-#
-# class DetailView(generic.DetailView):
-#     model = Question
-#     template_name = 'polls/detail.html'
-#     def get_queryset(self):
-#         return Question.objects.filter(pub_date__lte=timezone.now())
-#
-# class ResultsView(generic.DetailView):
-#     model = Question
-#     template_name = 'polls/results.html'
-#
-# def vote(request, question_id):
-#     p = get_object_or_404(Question, pk=question_id)
-#     try:
-#         selected_choice = p.choice_set.get(pk=request.POST['choice'])
-#     except (KeyError, Choice.DoesNotExist):
-#         # Redisplay the question voting form.
-#         return render(request, 'polls/detail.html', {
-#             'question': p,
-#             'error_message': "You didn't select a choice.",
-#         })
-#     else:
-#         selected_choice.votes += 1
-#         selected_choice.save()
-#         return HttpResponseRedirect(reverse('polls:results', args=(p.id,)))
-#
-# def results(request, question_id):
-#     question = get_object_or_404(Question, pk=question_id)
-#     return render(request, 'polls/results.html', {'question': question})
-#
-# class QuestionsList(APIView):
-#     def get(self, request, format=None):
-#         questions = Question.query()
-#         for question in questions:
-#             question.to_dict()
-#         return Response(usernames)
-#     serializer_class = QuestionSerializer
-#
-# class ChoiceList(generics.ListCreateAPIView):
-#     serializer_class = ChoiceSerializer
-#     def get_queryset(self):
-#         question_id = self.kwargs['question_id']
-#         return Choice.query(Choice.question == question_id)
 class QuestionView(APIView):
     def get(self, request, format=None):
-        question = Question.query(id==request.GET['id']).fetch(1).to_dict()
-        #serializer = QuestionSerializer(question)
-        return Response(question)
+        #question = Question.query(id==request.GET['id']).fetch(1).to_dict()
+        serializer = QuestionSerializer(Question.query(), many=True)
+        serializer.data
+        return Response(serializer.data)
 
     def post(self, request,format=None):
         serializer = QuestionSerializer(data=request.data)
@@ -93,6 +43,22 @@ class QuestionView(APIView):
             serializer.save()
             return Response(status=status.HTTP_201_CREATED)
         return Response(serializer.data,status=status.HTTP_400_BAD_REQUEST)
+
+class SearchView(APIView):
+    def get(self, request,format=None):
+        query=request.GET.get('query')
+        logger.info(query)
+        try:
+            search_results = index.search(query.strip())
+            result=[]
+            for doc in search_results:
+                doc_id = doc.doc_id
+                fields = doc.fields
+            logger.info(search_results)
+            return Response("Success")
+        except search.Error:
+            logger("search failed")
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
 class FileUploadView(views.APIView):
     parser_classes = (FileUploadParser,)

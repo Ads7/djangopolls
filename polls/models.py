@@ -20,6 +20,11 @@ class Question(ndb.Model):
     pub_date = ndb.DateTimeProperty(auto_now_add=True)
     image = ndb.StringProperty()
 
+    @classmethod
+    def get_by_id(cls, q_id):
+        key = ndb.Key(cls, q_id)
+        return key.get()
+
     def __unicode__(self):
     	return self.question_text
 
