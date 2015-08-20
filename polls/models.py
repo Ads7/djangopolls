@@ -16,23 +16,24 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
 
 # Create your models here.
 class Question(ndb.Model):
-    question_text =  ndb.TextProperty(max_length=200)
-    pub_date = ndb.DateTimeProperty(name='date published')
+    question_text =  ndb.TextProperty()
+    pub_date = ndb.DateTimeProperty(auto_now_add=True)
     image = ndb.StringProperty()
+
     def __unicode__(self):
     	return self.question_text
 
-    def was_published_recently(self):
-        now = timezone.now()
-        return now - datetime.timedelta(days=1) <= self.pub_date <= now
-    was_published_recently.admin_order_field = 'pub_date'
-    was_published_recently.boolean = True
-    was_published_recently.short_description = 'Published recently?'
+    # def was_published_recently(self):
+    #     now = timezone.now()
+    #     return now - datetime.timedelta(days=1) <= self.pub_date <= now
+    # was_published_recently.admin_order_field = 'pub_date'
+    # was_published_recently.boolean = True
+    # was_published_recently.short_description = 'Published recently?'
     
 
 class Choice(ndb.Model):
     question = ndb.KeyProperty(kind=Question)
-    choice_text = ndb.StringProperty(max_length=200)
+    choice_text = ndb.StringProperty()
     votes = ndb.IntegerProperty(default=0)
 
     def __unicode__(self):
