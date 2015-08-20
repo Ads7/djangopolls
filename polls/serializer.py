@@ -17,6 +17,7 @@ class ChoiceSerializer(serializers.Serializer):
 
 class QuestionSerializer(serializers.Serializer):
     question_text = serializers.CharField()
+    choices=serializers.StringRelatedField(many=True)
 
     def create(self, validated_data):
         question = Question()

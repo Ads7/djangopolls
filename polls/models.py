@@ -37,7 +37,7 @@ class Question(ndb.Model):
     
 
 class Choice(ndb.Model):
-    question = ndb.KeyProperty(kind=Question)
+    question = ndb.KeyProperty(kind=Question,related_name='choices')
     choice_text = ndb.StringProperty()
     votes = ndb.IntegerProperty(default=0)
 
