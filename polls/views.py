@@ -40,7 +40,11 @@ class QuestionView(APIView):
     def post(self, request,format=None):
         serializer = QuestionSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            q=serializer.save()
+
+            logger.info(serializer.save())
+            data=request.data.get("choices")
+
             return Response(status=status.HTTP_201_CREATED)
         return Response(serializer.data,status=status.HTTP_400_BAD_REQUEST)
 

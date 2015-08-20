@@ -7,14 +7,13 @@ from google.appengine.api import search
 index = search.Index(name='question')
 
 logger = logging.getLogger(__name__)
-# class ChoiceSerializer(serializers.Serializer):
-#     question_text = serializers.CharField()
-#     image = serializers.CharField()
-#     pub_date = serializers.DateTimeField()
-#     class Meta:
-#         model = Choice
-#         fields = ('question', 'choice_text', 'votes')
-#
+class ChoiceSerializer(serializers.Serializer):
+    question = serializers.HyperlinkedModelSerializer()
+    choice_text = serializers.CharField()
+    votes = serializers.IntegerField(default=0)
+
+
+
 
 class QuestionSerializer(serializers.Serializer):
     question_text = serializers.CharField()
@@ -30,7 +29,6 @@ class QuestionSerializer(serializers.Serializer):
         d = search.Document(doc_id=key.urlsafe(),fields=fields)
         try:
             val=index.put(d)
-            logger.error("index"+val[0].id)
         except search.Error:
             logger("indexing failed")
 
