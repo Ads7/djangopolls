@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework import views
 from .models import Choice, Question
-from .serializer import QuestionSerializer
+from .serializer import ChoiceSerializer,QuestionSerializer
 from django.http import Http404
 from django.core.urlresolvers import reverse
 from django.views import generic
@@ -30,9 +30,39 @@ my_default_retry_params = gcs.RetryParams(initial_delay=0.2,
                                           max_retry_period=15)
 gcs.set_default_retry_params(my_default_retry_params)
 
+class ChoicesView(APIView):
+    # def get(self, request, format=None):
+    #     id=request.GET.get('query')
+    #     question_key=ndb.Key(Question,id)
+    #     serializer = ChoiceSerializer(Choice.query(Choice.question==question_key), many=True)
+    #     serializer.data
+    #     return Response(serializer.data)
+
+    def post(self, request,format=None):
+        serializer = ChoiceSerializer(data=request.data)
+        id=request.GET.get('query')
+        question_key=ndb.Key(Question,id)
+        question= question_key.get()
+        if serializer.is_valid():
+            choice_list = [i for i in question.choices]
+            choice_list.append(Choice(choice_text=str(request.data.get("choice_text"))))
+            question.choices=choice_list
+            return Response(status=status.HTTP_201_CREATED)
+        return Response(serializer.error_messages,status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request,format=None):
+        serializer = ChoiceSerializer(data=request.data)
+        id=request.DELETE.get('query')
+        question_key=ndb.Key(Question,id)
+        question= question_key.get()
+        if serializer.is_valid():
+            choice_list = [i for i in question.choices if i.choice_text != request.data.get("choice_text")]
+            question.choices=choice_list
+            return Response(status=status.HTTP_201_CREATED)
+        return Response(serializer.error_messages,status=status.HTTP_400_BAD_REQUEST)
+
 class QuestionView(APIView):
     def get(self, request, format=None):
-        #question = Question.query(id==request.GET['id']).fetch(1).to_dict()
         serializer = QuestionSerializer(Question.query(), many=True)
         serializer.data
         return Response(serializer.data)
@@ -41,12 +71,23 @@ class QuestionView(APIView):
         serializer = QuestionSerializer(data=request.data)
         if serializer.is_valid():
             q=serializer.save()
-
-            logger.info(serializer.save())
-            data=request.data.get("choices")
-
             return Response(status=status.HTTP_201_CREATED)
-        return Response(serializer.data,status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.error_messages,status=status.HTTP_400_BAD_REQUEST)
+
+class QuestionDetailView(APIView):
+    def get(self, request,question_id, format=None):
+        serializer = QuestionSerializer(Question.get_by_id(int(question_id)))
+        return Response(serializer.data)
+
+    def delete(self, request,question_id,format=None):
+        logger.info(question_id)
+        question_key=ndb.Key(Question,int(question_id))
+        q=question_key.get()
+        if q!=None:
+            q.key.delete()
+            return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
 
 class SearchView(APIView):
     def get(self, request,format=None):
@@ -66,9 +107,24 @@ class SearchView(APIView):
 
 class FileUploadView(views.APIView):
     parser_classes = (FileUploadParser,)
+
+    def get(self, request, question_id,format=None):
+        if Question.get_by_id(int(question_id)) !=None:
+            q=Question.get_by_id(int(question_id))
+            return Response(q.image)
+        return Response("Error")
+
+    def delete(self, request, question_id,format=None):
+        if Question.get_by_id(int(question_id)) !=None:
+            q=Question.get_by_id(int(question_id))
+            q.image=None
+            q.put()
+            return Response("deleted")
+        return Response("Error")
+
     def post(self, request, question_id,format=None):
-        if(Question.query(id=question_id).exists()):
-            q=Question.query(id==question_id)
+        if Question.get_by_id(int(question_id)) !=None:
+            q=Question.get_by_id(int(question_id))
             data = request.data['file']
             filename = "/bucket/" + question_id
             filename = filename.replace(" ", "_")
@@ -78,7 +134,7 @@ class FileUploadView(views.APIView):
             blobstore_filename = '/gs' + filename
             blob_key = blobstore.create_gs_key(blobstore_filename)
             q.image=images.get_serving_url(blob_key)
-            q.save()
-            return Response(images.get_serving_url(blob_key))
+            q.put()
+            return Response(filename)
         return Response("Error")
 
