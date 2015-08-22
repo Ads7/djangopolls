@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from google.appengine.ext import ndb
@@ -26,7 +27,6 @@ class Question(ndb.Model):
     pub_date = ndb.DateTimeProperty(auto_now_add=True)
     image = ndb.StringProperty()
     choices=ndb.StructuredProperty(Choice, repeated=True)
-
 
     def __unicode__(self):
     	return self.question_text

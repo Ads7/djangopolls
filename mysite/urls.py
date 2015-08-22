@@ -7,6 +7,6 @@ urlpatterns = [
     url(r'^polls/', include('polls.urls', namespace="polls")),
 ]
 
-# urlpatterns += [
-#     url(r'^api-token-auth/', views.obtain_auth_token)
-# ]
+urlpatterns += [
+    url(r'^api-token-auth/', views.obtain_auth_token)
+]
