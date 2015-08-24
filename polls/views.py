@@ -100,6 +100,7 @@ class QuestionDetailView(APIView):
         q=question_key.get()
         if q!=None:
             q.key.delete()
+            index.delete(question_key.id())
             return Response(status=status.HTTP_200_OK)
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
@@ -135,7 +136,7 @@ class FileUploadView(views.APIView):
             gcs_file.close()
             blobstore_filename = '/gs' + filename
             blob_key = blobstore.create_gs_key(blobstore_filename)
-            q.image=images.get_serving_url(blob_key)
+            q.image=blob_key
             q.put()
             return Response(images.get_serving_url(blob_key))
         return Response("Error")
@@ -152,11 +153,13 @@ class FileUploadView(views.APIView):
     def delete(self, request, question_id,format=None):
         if Question.get_by_id(int(question_id)) !=None:
             q=Question.get_by_id(int(question_id))
+            filename="/bucket/" + question_id
             blob_key = q.image
             q.image=None
             q.put()
             if blob_key != None:
                 blobstore.delete(blob_key)
+                gcs.delte(filename)
             return Response("deleted")
         return Response("Error")
 

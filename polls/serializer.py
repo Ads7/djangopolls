@@ -13,8 +13,6 @@ class ChoiceSerializer(serializers.Serializer):
     votes = serializers.IntegerField(default=0,allow_null=True)
 
 
-
-
 class QuestionSerializer(serializers.Serializer):
     question_text = serializers.CharField()
     choices = serializers.ListField(child=ChoiceSerializer(),allow_null=True)
@@ -33,7 +31,7 @@ class QuestionSerializer(serializers.Serializer):
             search.TextField(name="id", value=key.urlsafe()), # the product id
             search.TextField(name="question_text", value=validated_data["question_text"])
         ]
-        d = search.Document(doc_id=key.urlsafe(),fields=fields)
+        d = search.Document(doc_id=key.id(),fields=fields)
         try:
             val=index.put(d)
         except search.Error:
