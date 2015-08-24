@@ -28,10 +28,10 @@ class QuestionSerializer(serializers.Serializer):
         question.choices=choice_list
         key=question.put()
         fields = [
-            search.TextField(name="id", value=key.urlsafe()), # the product id
+            search.TextField(name="id", value=str(key.id())), # the product id
             search.TextField(name="question_text", value=validated_data["question_text"])
         ]
-        d = search.Document(doc_id=key.id(),fields=fields)
+        d = search.Document(doc_id=str(key.id()),fields=fields)
         try:
             val=index.put(d)
         except search.Error:

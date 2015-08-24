@@ -41,9 +41,7 @@ class ChoicesView(APIView):
         question= Question.get_by_id(int(question_id))
         if serializer.is_valid():
             choice_list = [i for i in question.choices]
-            logger.info(choice_list)
             choice_list.append(Choice(choice_text=str(request.data.get("choice_text"))))
-            logger.info(choice_list)
             question.choices=choice_list
             question.put()
             return Response(status=status.HTTP_201_CREATED)
@@ -65,6 +63,7 @@ class VotesView(APIView):
                 i.votes+=1
         q.put()
         return Response(status.HTTP_200_OK)
+
     def delete(self, request,question_id,choice_text,format=None):
         q=Question.get_by_id(int(question_id))
         for i in q.choices:
@@ -95,13 +94,14 @@ class QuestionDetailView(APIView):
         return Response(serializer.data)
 
     def delete(self, request,question_id,format=None):
-        logger.info(question_id)
         question_key=ndb.Key(Question,int(question_id))
         q=question_key.get()
         if q!=None:
-            q.key.delete()
-            index.delete(question_key.id())
-            return Response(status=status.HTTP_200_OK)
+            fut_q=q.key.delete_async()
+            fut_index=index.delete_async(question_id)
+            fut_index.get_result()
+            fut_q.get_result()
+            return Response(status.HTTP_200_OK)
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -128,7 +128,6 @@ class FileUploadView(views.APIView):
         if (Question.get_by_id(int(question_id)) !=None) and 'file' in request.data:
             q=Question.get_by_id(int(question_id))
             data = request.data["file"]
-            logger.info(data)
             filename = "/bucket/" + question_id
             filename = filename.replace(" ", "_")
             gcs_file = gcs.open(filename, 'w', content_type = 'image/jpeg')
@@ -158,8 +157,10 @@ class FileUploadView(views.APIView):
             q.image=None
             q.put()
             if blob_key != None:
-                blobstore.delete(blob_key)
-                gcs.delte(filename)
+                fut_blobstore=blobstore.delete_async(blob_key)
+                fut_gcs=gcs.delte_async(filename)
+                fut_blobstore.get_result()
+                fut_gcs.get_result()
             return Response("deleted")
         return Response("Error")
 
