@@ -2,3 +2,4 @@ lib/
 appengine_config.py
 .idea/
 *.pyc
+*~

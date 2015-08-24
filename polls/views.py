@@ -133,6 +133,7 @@ class FileUploadView(views.APIView):
             gcs_file = gcs.open(filename, 'w', content_type = 'image/jpeg')
             gcs_file.write(data.read())
             gcs_file.close()
+            # Blobstore API requires extra /gs to distinguish against blobstore files.
             blobstore_filename = '/gs' + filename
             blob_key = blobstore.create_gs_key(blobstore_filename)
             q.image=blob_key
