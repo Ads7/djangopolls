@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+<ul>
+{% for q in questions%}
+<li>{{ forloop.counter }}:{{ q.question_text }}----{{q.pub_date}}</li>
+{% endfor %}
+</ul>
+</body>
+</html>

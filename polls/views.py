@@ -1,4 +1,6 @@
+from django.core import serializers
 from django.shortcuts import get_object_or_404, render
+from rest_framework.decorators import api_view
 from rest_framework.parsers import FileUploadParser
 from rest_framework.response import Response
 from django.http import HttpResponseRedirect, HttpResponse
@@ -63,6 +65,16 @@ def vote(request, question_id):
 def results(request, question_id):
     question = get_object_or_404(Question, pk=question_id)
     return render(request, 'polls/results.html', {'question': question})
+
+@api_view(['GET'])
+def QuestionsView(request):
+    if request.method == 'GET':
+        query= Question.objects.all()
+        list=[]
+        for q in query:
+            list.append(QuestionSerializer(q).data)
+        return render(request,'polls/questions.html',{'questions':list})
+    return Response({"message": "Hello, world!"})
 
 class QuestionsList(generics.ListCreateAPIView):
     queryset = Question.objects.all()
