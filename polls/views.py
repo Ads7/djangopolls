@@ -11,18 +11,18 @@ from django.core.urlresolvers import reverse
 from django.views import generic
 from rest_framework import generics
 from django.utils import timezone
-import cloudstorage as gcs
-from google.appengine.api import blobstore
-from google.appengine.api import images
-
-from google.appengine.api import app_identity
+# import cloudstorage as gcs
+# from google.appengine.api import blobstore
+# from google.appengine.api import images
+#
+# from google.appengine.api import app_identity
 
 # Retry can help overcome transient urlfetch or GCS issues, such as timeouts.
-my_default_retry_params = gcs.RetryParams(initial_delay=0.2,
-                                          max_delay=5.0,
-                                          backoff_factor=2,
-                                          max_retry_period=15)
-gcs.set_default_retry_params(my_default_retry_params)
+# my_default_retry_params = gcs.RetryParams(initial_delay=0.2,
+#                                           max_delay=5.0,
+#                                           backoff_factor=2,
+#                                           max_retry_period=15)
+# gcs.set_default_retry_params(my_default_retry_params)
 
 class IndexView(generic.ListView):
     """docstring for IndexView"""
@@ -75,27 +75,27 @@ class ChoiceList(generics.ListCreateAPIView):
         return Choice.objects.filter(question=question_id)
 
 
-class FileUploadView(views.APIView):
-    parser_classes = (FileUploadParser,)
-    # def put(self, request, filename, format=None):
-    #     file_obj = request.FILES['file']
-    #     # ...
-    #     # do some staff with uploaded file
-    #     # ...
-    #     return Response(file_obj)
-    def post(self, request, question_id,format=None):
-        if(Question.objects.filter(id=question_id).exists()):
-            q=Question.objects.get(id=question_id)
-            data =   request.data['file']
-            filename = "/bucket/" + question_id
-            filename = filename.replace(" ", "_")
-            gcs_file = gcs.open(filename, 'w', content_type = 'image/jpeg')
-            gcs_file.write(data.read())
-            gcs_file.close()
-            blobstore_filename = '/gs' + filename
-            blob_key = blobstore.create_gs_key(blobstore_filename)
-            q.image=images.get_serving_url(blob_key)
-            q.save()
-            return Response(images.get_serving_url(blob_key))
-        return Response("Error")
+# class FileUploadView(views.APIView):
+#     parser_classes = (FileUploadParser,)
+#     # def put(self, request, filename, format=None):
+#     #     file_obj = request.FILES['file']
+#     #     # ...
+#     #     # do some staff with uploaded file
+#     #     # ...
+#     #     return Response(file_obj)
+#     def post(self, request, question_id,format=None):
+#         if(Question.objects.filter(id=question_id).exists()):
+#             q=Question.objects.get(id=question_id)
+#             data =   request.data['file']
+#             filename = "/bucket/" + question_id
+#             filename = filename.replace(" ", "_")
+#             gcs_file = gcs.open(filename, 'w', content_type = 'image/jpeg')
+#             gcs_file.write(data.read())
+#             gcs_file.close()
+#             blobstore_filename = '/gs' + filename
+#             blob_key = blobstore.create_gs_key(blobstore_filename)
+#             q.image=images.get_serving_url(blob_key)
+#             q.save()
+#             return Response(images.get_serving_url(blob_key))
+#         return Response("Error")
 
