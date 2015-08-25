@@ -35,7 +35,7 @@ def reset_form(request):
         }
         return render(request, 'registration/password_reset_form.html', context)
 
-
+#
 # @api_view(['GET', 'POST'])
 # def password_reset_confirm(request, uidb64=None, token=None,
 #                            template_name='registration/password_reset_confirm.html',
