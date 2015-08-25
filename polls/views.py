@@ -1,5 +1,7 @@
 from django.shortcuts import get_object_or_404, render
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.parsers import FileUploadParser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.http import HttpResponseRedirect, HttpResponse, QueryDict
 from rest_framework.views import APIView
@@ -21,16 +23,19 @@ from google.appengine.api import app_identity
 from google.appengine.api import search
 
 index = search.Index(name='question')
-
 logger = logging.getLogger(__name__)
+
 # Retry can help overcome transient urlfetch or GCS issues, such as timeouts.
 my_default_retry_params = gcs.RetryParams(initial_delay=0.2,
                                           max_delay=5.0,
                                           backoff_factor=2,
                                           max_retry_period=15)
+
 gcs.set_default_retry_params(my_default_retry_params)
 
 class ChoicesView(APIView):
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
     def get(self, request,question_id,format=None):
         q=Question.get_by_id(int(question_id))
         serializer = ChoiceSerializer(q.choices, many=True)
@@ -50,6 +55,8 @@ class ChoicesView(APIView):
 
 
 class VotesView(APIView):
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
     def get(self, request,question_id,choice_text,format=None):
         q=Question.get_by_id(int(question_id))
         votes=None
@@ -76,6 +83,8 @@ class VotesView(APIView):
 
 
 class QuestionView(APIView):
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
     def get(self, request, format=None):
         serializer = QuestionSerializer(Question.query(), many=True)
         serializer.data
@@ -89,6 +98,8 @@ class QuestionView(APIView):
         return Response(serializer.error_messages,status=status.HTTP_400_BAD_REQUEST)
 
 class QuestionDetailView(APIView):
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
     def get(self, request,question_id, format=None):
         serializer = QuestionSerializer(Question.get_by_id(int(question_id)))
         return Response(serializer.data)
@@ -106,6 +117,8 @@ class QuestionDetailView(APIView):
 
 
 class SearchView(APIView):
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
     def get(self, request,format=None):
         query=request.GET.get('query')
         logger.info(query)
@@ -116,12 +129,14 @@ class SearchView(APIView):
                 doc_id = doc.doc_id
                 fields = doc.fields
             logger.info(search_results)
-            return Response("Success")
+            return Response(status=status.HTTP_200_OK)
         except search.Error:
             logger("search failed")
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
 class FileUploadView(views.APIView):
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
     parser_classes = (FileUploadParser,)
 
     def post(self, request, question_id,format=None):
@@ -139,7 +154,7 @@ class FileUploadView(views.APIView):
             q.image=blob_key
             q.put()
             return Response(images.get_serving_url(blob_key))
-        return Response("Error")
+        return Response(status.HTTP_400_BAD_REQUEST)
 
     def get(self, request, question_id,format=None):
         if Question.get_by_id(int(question_id)) !=None:
@@ -148,7 +163,7 @@ class FileUploadView(views.APIView):
                 url=images.get_serving_url(q.image)
             url ="Empty"
             return Response(url)
-        return Response("Error")
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, question_id,format=None):
         if Question.get_by_id(int(question_id)) !=None:
@@ -162,8 +177,8 @@ class FileUploadView(views.APIView):
                 fut_gcs=gcs.delte_async(filename)
                 fut_blobstore.get_result()
                 fut_gcs.get_result()
-            return Response("deleted")
-        return Response("Error")
+            return Response(status=status.HTTP_200_OK)
+        return Response(status.HTTP_400_BAD_REQUEST)
 
 
 
